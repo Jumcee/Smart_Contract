@@ -1,33 +1,35 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
-const hre = require("hardhat");
+const { ethers } = require('hardhat');
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+  const [deployer] = await ethers.getSigners();
+  console.log('Deploying contracts with the account:', deployer.address);
 
-  const lockedAmount = hre.ethers.parseEther("0.001");
+  // Deploy UserOnboarding contract
+  const UserOnboarding = await ethers.getContractFactory('UserOnboarding');
+  const userOnboarding = await UserOnboarding.deploy();
 
-  const lock = await hre.ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
-  });
+  console.log('UserOnboarding contract deployed to:', userOnboarding.address);
 
-  await lock.waitForDeployment();
-
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
-  );
+  // Run tests
+  await runTests(userOnboarding);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+async function runTests(userOnboarding) {
+  try {
+    const test = require('./test/UserOnboarding.test.js'); // Path to your test file
+
+    // Pass the deployed contract to the test
+    await testing(userOnboarding);
+    console.log('Tests completed successfully!');
+  } catch (error) {
+    console.error('Error running tests:', error);
+    process.exit(1);
+  }
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error('Error deploying contracts:', error);
+    process.exit(1);
+  });

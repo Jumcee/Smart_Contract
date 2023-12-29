@@ -1,13 +1,23 @@
+//Get 3 wallet addresses 
+
 const { ethers } = require('ethers');
 
-// Generate a new wallet
-const wallet = ethers.Wallet.createRandom();
+async function generateWallets() {
+  const wallets = [];
 
-// Get the address, mnemonic phrase and private key
-const address = wallet.address;
-const privateKey = wallet.privateKey;
-const mnemonic = wallet.mnemonic.phrase;
+  for (let i = 0; i < 3; i++) {
+    const wallet = ethers.Wallet.createRandom();
+    wallets.push(wallet);
+  }
 
-console.log('Address:', address);
-console.log('Private Key:', privateKey);
-console.log('mnemonic:', wallet.mnemonic.phrase);
+  return wallets;
+}
+
+generateWallets().then(wallets => {
+  console.log('Generated Wallet Addresses:');
+  wallets.forEach(wallet => {
+    console.log('Address:', wallet.address);
+    console.log('Private Key:', wallet.privateKey);
+    console.log('--------------------------');
+  });
+});

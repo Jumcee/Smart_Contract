@@ -1,11 +1,12 @@
 require('dotenv').config();
-const ethers = require('ethers');
+const { ethers } = require('ethers');
 
-const API_KEY = process.env.API_KEY;
-const API_URL = process.env.API_URL;
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 
-const provider = new ethers.AlchemyProvider('sepolia', API_KEY)
+const API_KEY = process.env.API_KEY
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS
+
+const rpcUrl = 'https://rpc.fuse.io';
+const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
 
 const contract = require("../artifacts/contracts/UserOnboarding.sol/UserOnboarding.json");
 
@@ -20,7 +21,7 @@ const userOnboarding = new ethers.Contract(contractAddress, abi, signer)
 
 // Interact with the contract
 async function onboardUser() {
-    const tx = await userOnboarding.onboardUser("0xEF416430BA75942b76bC195deE0aAD8b43B53eac", "USERNAME", 123456789);
+    const tx = await userOnboarding.onboardUser("0x1d18e8cF196fA515284034C719964FCE517aC49F", "USERNAME", 123456789);
     await tx.wait();
     console.log("User onboarded successfully!");
 }

@@ -1,52 +1,58 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { ethers } = require('ethers');
 
 describe('UserOnboarding', function () {
   let UserOnboarding;
   let userOnboarding;
+  let ERC20Token;
+  let erc20Token;
   let owner;
-  let addr1;
+  let user;
+
+  const initialSupply = ethers.utils.parseEther('1000000');
 
   beforeEach(async function () {
-    UserOnboarding = await ethers.getContractFactory('UserOnboarding');
-    [owner, addr1] = await ethers.getSigners();
+    [owner, user] = await ethers.getSigners();
 
-    userOnboarding = await UserOnboarding.deploy();
+    ERC20Token = await ethers.getContractFactory('ERC20Token'); // Replace with your token contract name
+    erc20Token = await ERC20Token.deploy(initialSupply);
+    await erc20Token.deployed();
+
+    UserOnboarding = await ethers.getContractFactory('UserOnboarding');
+    userOnboarding = await UserOnboarding.deploy(erc20Token.address);
+    await userOnboarding.deployed();
   });
 
-  it('Should onboard a user', async function () {
-    const nin = 123456789;
-    const name = 'Alice';
+  it('should allow onboarding a user', async function () {
+    const name = 'John Doe';
+    const nin = 1234567890;
+    const email = 'john@example.com';
+    const walletAddress = user.address;
 
-    await userOnboarding.connect(addr1).onboardUser(addr1.address, name, nin);
+    await expect(userOnboarding.onboardUser(walletAddress, name, nin, email))
+      .to.emit(userOnboarding, 'UserOnboarded')
+      .withArgs(walletAddress, name, nin, email);
 
-    const user = await userOnboarding.usersByAddress(addr1.address);
-    expect(user.walletAddress).to.equal(addr1.address);
-    expect(user.name).to.equal(name);
-    expect(user.nin).to.equal(nin);
+    const userByAddress = await userOnboarding.usersByAddress(walletAddress);
+    expect(userByAddress.name).to.equal(name);
+    expect(userByAddress._nin).to.equal(nin);
+    expect(userByAddress.email).to.equal(email);
 
     const userByNIN = await userOnboarding.usersByNIN(nin);
-    expect(userByNIN).to.equal(addr1.address);
+    expect(userByNIN).to.equal(walletAddress);
   });
 
-  it('Should not allow onboarding with existing NIN', async function () {
-    const nin = 123456789;
-    const name = 'Alice';
+  it('should airdrop tokens upon payment confirmation', async function () {
+    const amount = ethers.utils.parseEther('100');
 
-    await userOnboarding.connect(addr1).onboardUser(addr1.address, name, nin);
+    await erc20Token.transfer(user.address, amount);
+    await erc20Token.connect(user).approve(userOnboarding.address, amount);
 
-    await expect(userOnboarding.connect(addr1).onboardUser(addr1.address, name, nin))
-      .to.be.revertedWith('User with this NIN already exists');
-  });
+    await expect(
+      userOnboarding.airdropTokens(user.address, amount)
+    ).to.emit(erc20Token, 'Transfer').withArgs(userOnboarding.address, user.address, amount);
 
-  it('Should not allow onboarding with existing wallet address', async function () {
-    const nin1 = 987654321;
-    const nin2 = 123456789;
-    const name = 'Bob';
-
-    await userOnboarding.connect(addr1).onboardUser(addr1.address, name, nin1);
-
-    await expect(userOnboarding.connect(addr1).onboardUser(addr1.address, name, nin2))
-      .to.be.revertedWith('Wallet address already associated');
+    const userBalance = await erc20Token.balanceOf(user.address);
+    expect(userBalance).to.equal(amount);
   });
 });

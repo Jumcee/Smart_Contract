@@ -7,7 +7,7 @@ contract UserOnboarding {
     struct User {
         address walletAddress;
         string name;
-        uint256 _nin; // Make nin private by prefixing it with underscore
+        uint256 _nin; //
         string email;
     }
 
